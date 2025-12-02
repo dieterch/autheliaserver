@@ -1,0 +1,73 @@
+server:
+  address: "tcp://0.0.0.0:9091/"
+
+log:
+  level: info
+  format: text
+  file_path: /var/log/authelia/authelia.log
+
+telemetry:
+  metrics:
+    enabled: true
+
+identity_validation:
+  reset_password:
+    jwt_secret: "${AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET}"
+
+authentication_backend:
+  file:
+    path: /config/users.yml
+    watch: true
+
+access_control:
+  default_policy: one_factor
+
+  rules:
+    # WordPress (zwingend 2FA)
+    - domain: "wordpress.home.smallfamilybusiness.net"
+      policy: two_factor
+
+    # Admin-Tools (zwingend 2FA)
+    - domain:
+        - "traefik.home.smallfamilybusiness.net"
+        - "wpdbadmin.home.smallfamilybusiness.net"
+      policy: two_factor
+      subject:
+        - "group:admins"
+
+    # Alle Subdomains (Standard: 1FA)
+    - domain: "*.home.smallfamilybusiness.net"
+      policy: one_factor
+
+session:
+  cookies:
+    - name: authelia_session
+      domain: home.smallfamilybusiness.net
+      authelia_url: https://authelia.home.smallfamilybusiness.net
+      same_site: none
+      expiration: 3600
+      inactivity: 300
+
+  secret: "${AUTHELIA_SESSION_SECRET}"
+
+storage:
+  encryption_key: "${AUTHELIA_STORAGE_ENCRYPTION_KEY}"
+  local:
+    path: /config/storage
+
+notifier:
+  smtp:
+    address: smtp.gmail.com:587
+    username: "${AUTHELIA_NOTIFIER_SMTP_USERNAME}"
+    password: "${AUTHELIA_NOTIFIER_PASSWORD}"
+    sender: "${AUTHELIA_NOTIFIER_SMTP_USERNAME}"
+    startup_check_address: "${AUTHELIA_NOTIFIER_SMTP_USERNAME}"
+    tls:
+      server_name: smtp.gmail.com
+      skip_verify: false
+    timeout: 10s
+
+# notifier:
+#   filesystem:
+#     filename: /config/notification.txt
+

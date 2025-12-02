@@ -1,0 +1,10 @@
+
+logs/
+config/users.yml
+
+# Environments
+.env
+
+notification.txt
+storage
+

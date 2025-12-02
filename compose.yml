@@ -1,0 +1,35 @@
+services:
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    env_file:
+      - .env
+    environment:
+      AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET: ${AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET}
+      AUTHELIA_SESSION_SECRET: ${AUTHELIA_SESSION_SECRET}
+      AUTHELIA_STORAGE_ENCRYPTION_KEY: ${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      AUTHELIA_NOTIFIER_SMTP_USERNAME: ${AUTHELIA_NOTIFIER_SMTP_USERNAME}
+      AUTHELIA_NOTIFIER_SMTP_PASSWORD: ${AUTHELIA_NOTIFIER_SMTP_PASSWORD}
+      AUTHELIA_LOG_FILE_PATH: /var/log/authelia/authelia.log
+      AUTHELIA_LOG_LEVEL: info
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+      - ./logs:/var/log/authelia
+    networks:
+      - traefik_network
+    labels:
+      - "traefik.enable=true"
+
+      # Router
+      - "traefik.http.routers.authelia.rule=Host(`authelia.home.smallfamilybusiness.net`)"
+      - "traefik.http.routers.authelia.entrypoints=https"
+      - "traefik.http.routers.authelia.tls=true"
+      - "traefik.http.routers.authelia.tls.certresolver=letsencrypt"
+
+      # Service (Authelia runs on port 9091 internally)
+      - "traefik.http.services.authelia.loadbalancer.server.port=9091"
+
+networks:
+  traefik_network:
+    external: true
