@@ -62,3 +62,5 @@ in compose.yml:
       - "traefik.http.routers._routername_.middlewares=authelia@file"
 ...
 ```
+Documentation
+https://www.authelia.com/
