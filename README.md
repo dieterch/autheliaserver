@@ -1,7 +1,7 @@
 ## Authelia Docker Authentification setup for traefik 3.6.2
 
-- configuration.yam an domain anpassen
-- users.yml anlegen
+- config/configuration.yam an domain anpassen
+- config/users.yml anlegen
 
 ```yaml
 users:
