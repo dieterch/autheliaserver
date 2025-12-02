@@ -1,4 +1,4 @@
-## Authelia Authentification setup for traefik 3.6.2
+## Authelia Docker Authentification setup for traefik 3.6.2
 
 - configuration.yam an domain anpassen
 - users.yml anlegen
