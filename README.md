@@ -34,3 +34,31 @@ start with:
 docker compose up -d
 docker logs -f authelia
 ```
+
+in traefik/dynamic.yml:
+```yaml
+http:
+  middlewares:
+
+    ###############################################
+    # Authelia ForwardAuth
+    ###############################################
+    authelia:
+      forwardAuth:
+        address: http://authelia:9091/api/verify?rd=https://authelia.home.smallfamilybusiness.net/
+        trustForwardHeader: true
+        authResponseHeaders:
+          - Remote-User
+          - Remote-Groups
+          - Remote-Name
+          - Remote-Email
+```
+
+in compose.yml:
+```yaml
+    labels:
+...
+      # Alternative ForwardAuth middleware pointing to Authelia
+      - "traefik.http.routers._routername_.middlewares=authelia@file"
+...
+```
