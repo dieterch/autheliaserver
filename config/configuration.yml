@@ -21,9 +21,27 @@ authentication_backend:
     watch: true
 
 access_control:
-  default_policy: one_factor
+  default_policy: deny
 
   rules:
+
+    - domain: authelia.home.smallfamilybusiness.net
+      resources:
+        - "^/admin/invite.*"
+      policy: bypass
+
+    - domain: authelia.home.smallfamilybusiness.net
+      resources:
+        - "^/admin/api/invite.*"
+      policy: bypass
+
+    - domain: authelia.home.smallfamilybusiness.net
+      resources:
+        - "^/admin.*"
+      policy: deny
+      subject:
+        - "group:users"
+
     # WordPress (zwingend 2FA)
     - domain: "wordpress.home.smallfamilybusiness.net"
       policy: one_factor
