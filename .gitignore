@@ -1,5 +1,6 @@
 
 logs/
+bak/
 config/users.yml
 
 # Environments
@@ -7,4 +8,10 @@ config/users.yml
 
 notification.txt
 storage
+node_modules/
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.sqlite
 

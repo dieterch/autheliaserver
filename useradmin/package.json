@@ -1,0 +1,22 @@
+{
+  "name": "authelia-useradmin",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "app.mjs",
+  "scripts": {
+    "start": "node app.mjs",
+    "dev": "nodemon --watch . --ext mjs,js,html --exec node app.mjs"
+  },
+  "dependencies": {
+    "argon2": "^0.30.0",
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "js-yaml": "^4.1.0",
+    "nodemailer": "^6.9.3",
+    "uuid": "^9.0.0",
+    "winston": "^3.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

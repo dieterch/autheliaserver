@@ -1,0 +1,1 @@
+clear;docker run --rm --volume ./config:/config authelia/authelia:latest  authelia config validate

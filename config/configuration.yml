@@ -5,6 +5,7 @@ log:
   level: info
   format: text
   file_path: /var/log/authelia/authelia.log
+  keep_stdout: true
 
 telemetry:
   metrics:
@@ -25,7 +26,15 @@ access_control:
   rules:
     # WordPress (zwingend 2FA)
     - domain: "wordpress.home.smallfamilybusiness.net"
-      policy: two_factor
+      policy: one_factor
+
+    # Admin-Tools deny users
+    - domain:
+        - "traefik.home.smallfamilybusiness.net"
+        - "wpdbadmin.home.smallfamilybusiness.net"
+      policy: deny
+      subject:
+        - "group:users"
 
     # Admin-Tools (zwingend 2FA)
     - domain:
@@ -41,7 +50,7 @@ access_control:
 
 session:
   cookies:
-    - name: authelia_session
+    - name: authelia_session_home
       domain: home.smallfamilybusiness.net
       authelia_url: https://authelia.home.smallfamilybusiness.net
       same_site: none
@@ -55,17 +64,6 @@ storage:
   local:
     path: /config/storage
 
-notifier:
-  smtp:
-    address: smtp.gmail.com:587
-    username: "${AUTHELIA_NOTIFIER_SMTP_USERNAME}"
-    password: "${AUTHELIA_NOTIFIER_PASSWORD}"
-    sender: "${AUTHELIA_NOTIFIER_SMTP_USERNAME}"
-    startup_check_address: "${AUTHELIA_NOTIFIER_SMTP_USERNAME}"
-    tls:
-      server_name: smtp.gmail.com
-      skip_verify: false
-    timeout: 10s
 
 # notifier:
 #   filesystem:
