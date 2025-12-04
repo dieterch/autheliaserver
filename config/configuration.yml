@@ -25,34 +25,20 @@ access_control:
 
   rules:
 
+    # Notwendig für das invite System des useradmin addons
     - domain: authelia.home.smallfamilybusiness.net
       resources:
         - "^/admin/invite.*"
-      policy: bypass
-
-    - domain: authelia.home.smallfamilybusiness.net
-      resources:
         - "^/admin/api/invite.*"
       policy: bypass
 
+    # Admin-Bereich (zwingend 2FA)
     - domain: authelia.home.smallfamilybusiness.net
       resources:
         - "^/admin.*"
-      policy: deny
+      policy: two_factor
       subject:
-        - "group:users"
-
-    # WordPress (zwingend 2FA)
-    - domain: "wordpress.home.smallfamilybusiness.net"
-      policy: one_factor
-
-    # Admin-Tools deny users
-    - domain:
-        - "traefik.home.smallfamilybusiness.net"
-        - "wpdbadmin.home.smallfamilybusiness.net"
-      policy: deny
-      subject:
-        - "group:users"
+        - "group:admins"
 
     # Admin-Tools (zwingend 2FA)
     - domain:
@@ -61,6 +47,18 @@ access_control:
       policy: two_factor
       subject:
         - "group:admins"
+
+    # Admin-Bereich deny users
+    - domain: authelia.home.smallfamilybusiness.net
+      resources:
+        - "^/admin.*"
+      policy: deny
+
+    # Admin-Tools deny users
+    - domain:
+        - "traefik.home.smallfamilybusiness.net"
+        - "wpdbadmin.home.smallfamilybusiness.net"
+      policy: deny
 
     # Alle Subdomains (Standard: 1FA)
     - domain: "*.home.smallfamilybusiness.net"
@@ -82,7 +80,6 @@ storage:
   encryption_key: "${AUTHELIA_STORAGE_ENCRYPTION_KEY}"
   local:
     path: /config/storage
-
 
 # notifier:
 #   filesystem:
