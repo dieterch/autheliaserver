@@ -74,6 +74,7 @@ session:
       same_site: none
       expiration: 3600
       inactivity: 300
+      remember_me: '6M'
 
   secret: "${AUTHELIA_SESSION_SECRET}"
 
