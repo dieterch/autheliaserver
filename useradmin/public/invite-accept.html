@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   </head>
+
   <body class="p-3">
     <div class="container" style="max-width:640px">
       <h2>Accept Invite</h2>
@@ -16,12 +17,22 @@
           <label>Username</label>
           <input id="username" class="form-control" required>
         </div>
+
         <div class="mb-3">
           <label>Password</label>
           <input id="password" type="password" class="form-control" required>
         </div>
+
+        <div class="mb-3">
+          <label>Repeat password</label>
+          <input id="password2" type="password" class="form-control" required>
+          <div id="pwError" class="text-danger mt-1" style="display:none;">
+            Passwords do not match.
+          </div>
+        </div>
+
         <div>
-          <button class="btn btn-primary">Create account</button>
+          <button class="btn btn-primary" id="submitBtn">Create account</button>
         </div>
       </form>
     </div>
@@ -36,10 +47,35 @@
         document.getElementById('acceptForm').style.display = '';
       }
 
+      const pw1 = document.getElementById('password');
+      const pw2 = document.getElementById('password2');
+      const pwError = document.getElementById('pwError');
+      const submitBtn = document.getElementById('submitBtn');
+
+      function checkPasswords() {
+        if (pw1.value.trim() && pw2.value.trim() && pw1.value !== pw2.value) {
+          pwError.style.display = 'block';
+          submitBtn.disabled = true;
+        } else {
+          pwError.style.display = 'none';
+          submitBtn.disabled = false;
+        }
+      }
+
+      pw1.addEventListener('input', checkPasswords);
+      pw2.addEventListener('input', checkPasswords);
+
       document.getElementById('acceptForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+
         const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
+        const password = pw1.value;
+
+        // Sicherheit: Doppelt prüfen
+        if (password !== pw2.value) {
+          pwError.style.display = 'block';
+          return;
+        }
 
         try {
           const res = await fetch('/admin/api/invite/accept', {

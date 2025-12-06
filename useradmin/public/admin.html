@@ -8,8 +8,66 @@
     <style>
       body { padding: 20px; }
       .small-mono { font-family: monospace; font-size: 0.9em; }
+      .groups-dropdown { min-width: 180px; }
+      .groups-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; display: inline-block; vertical-align: middle; }
     </style>
   </head>
+
+  <!-- Change Password Modal -->
+  <div class="modal fade" id="modalPass" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Change Password</h5></div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <input type="password" id="pass1" class="form-control" placeholder="New password">
+          </div>
+          <div>
+            <input type="password" id="pass2" class="form-control" placeholder="Repeat password">
+          </div>
+          <div id="passError" class="text-danger mt-2" style="display:none;">
+            Passwords do not match!
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" id="savePassBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade" id="modalEdit" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Edit User</h5></div>
+        <div class="modal-body">
+          <input id="editEmail" class="form-control mb-2" placeholder="email">
+          <input id="editDisplay" class="form-control mb-2" placeholder="display name">
+
+          <!-- Dynamic Groups for edit -->
+          <div class="mb-2">
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle groups-dropdown"
+                      type="button" id="editGroupsBtn" data-bs-toggle="dropdown">
+                <span class="groups-label" id="editGroupsLabel">none</span>
+              </button>
+              <div class="dropdown-menu p-2" id="editGroupsMenu"></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" id="saveEditBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
   <body>
     <div class="container">
       <h1>Authelia — User Admin</h1>
@@ -22,11 +80,22 @@
 
       <h3>Create user</h3>
       <form id="createForm" class="mb-4">
-        <div class="row g-2">
+        <div class="row g-2 align-items-center">
           <div class="col-md-3"><input id="createUser" class="form-control" placeholder="username" required></div>
           <div class="col-md-3"><input id="createEmail" class="form-control" placeholder="email"></div>
           <div class="col-md-2"><input id="createDisplay" class="form-control" placeholder="displayname"></div>
-          <div class="col-md-2"><input id="createGroups" class="form-control" placeholder="groups (comma)"></div>
+
+          <!-- Dynamic Groups for create -->
+          <div class="col-md-2">
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle groups-dropdown"
+                      type="button" id="createGroupsBtn" data-bs-toggle="dropdown">
+                <span class="groups-label" id="createGroupsLabel">none</span>
+              </button>
+              <div class="dropdown-menu p-2" id="createGroupsMenu"></div>
+            </div>
+          </div>
+
           <div class="col-md-2"><input id="createPass" type="password" class="form-control" placeholder="password" required></div>
         </div>
         <div class="mt-2">
@@ -36,16 +105,27 @@
 
       <h3>Invite (magic link)</h3>
       <form id="inviteForm" class="mb-4">
-        <div class="row g-2">
+        <div class="row g-2 align-items-center">
           <div class="col-md-4"><input id="inviteEmail" class="form-control" placeholder="email" required></div>
-          <div class="col-md-4"><input id="inviteGroups" class="form-control" placeholder="groups (comma)"></div>
+
+          <!-- Dynamic Groups for invite -->
+          <div class="col-md-4">
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle groups-dropdown"
+                      type="button" id="inviteGroupsBtn" data-bs-toggle="dropdown">
+                <span class="groups-label" id="inviteGroupsLabel">none</span>
+              </button>
+              <div class="dropdown-menu p-2" id="inviteGroupsMenu"></div>
+            </div>
+          </div>
+
           <div class="col-md-2"><input id="inviteExpires" type="number" class="form-control" placeholder="expires min" value="60"></div>
           <div class="col-md-2"><button class="btn btn-secondary">Send Invite</button></div>
         </div>
       </form>
 
       <hr>
-      <div>
+      <div class="mb-3">
         <a class="btn btn-outline-secondary" id="reload">Reload users</a>
         <a class="btn btn-outline-secondary" id="viewLog" target="_blank" href="/admin/api/logfile">Open Log</a>
       </div>
@@ -53,6 +133,25 @@
     </div>
 
     <script>
+      /* =======================
+         Load groups.json
+      ======================= */
+      let AVAILABLE_GROUPS = [];
+
+      async function loadGroups() {
+        try {
+          const res = await fetch('/admin/api/groups.json');
+          const json = await res.json();
+          AVAILABLE_GROUPS = json.groups || [];
+        } catch (e) {
+          console.error("Could not load groups.json – fallback to users/admins");
+          AVAILABLE_GROUPS = ["users", "admins"];
+        }
+      }
+
+      /* =======================
+         Helper API Wrapper
+      ======================= */
       async function api(path, opts = {}) {
         const res = await fetch(path, opts);
         if (!res.ok) {
@@ -62,39 +161,106 @@
         return res.json().catch(()=>null);
       }
 
+      /* =======================
+         GROUP UI HELPERS
+      ======================= */
+
+      function getGroupsFor(prefix) {
+        const groups = [];
+        AVAILABLE_GROUPS.forEach(g => {
+          if (document.getElementById(`${prefix}_group_${g}`).checked)
+            groups.push(g);
+        });
+        return groups;
+      }
+
+      function setGroupsFor(prefix, groupsArray) {
+        AVAILABLE_GROUPS.forEach(g => {
+          const cb = document.getElementById(`${prefix}_group_${g}`);
+          if (cb) cb.checked = groupsArray.includes(g);
+        });
+        updateGroupsLabel(prefix);
+      }
+
+      function updateGroupsLabel(prefix) {
+        const labelEl = document.getElementById(`${prefix}GroupsLabel`);
+        const sel = getGroupsFor(prefix);
+        labelEl.textContent = sel.length ? sel.join(', ') : 'none';
+      }
+
+      function bindGroupCheckboxes(prefix) {
+        AVAILABLE_GROUPS.forEach(g => {
+          const cb = document.getElementById(`${prefix}_group_${g}`);
+          if (cb) {
+            cb.addEventListener('change', () => updateGroupsLabel(prefix));
+          }
+        });
+      }
+
+      function renderGroupMenu(prefix) {
+        const menu = document.getElementById(`${prefix}GroupsMenu`);
+        menu.innerHTML = "";
+
+        AVAILABLE_GROUPS.forEach(g => {
+          const id = `${prefix}_group_${g}`;
+          menu.innerHTML += `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="${id}">
+              <label class="form-check-label" for="${id}">${g}</label>
+            </div>
+          `;
+        });
+
+        bindGroupCheckboxes(prefix);
+        updateGroupsLabel(prefix);
+      }
+
+      /* =======================
+         Load & show users
+      ======================= */
       async function loadUsers() {
         try {
           const users = await api('/admin/api/users');
           renderUsers(users);
         } catch (e) {
-          document.getElementById('users-area').innerHTML = `<div class="alert alert-danger">Load failed: ${e.message}</div>`;
+          document.getElementById('users-area').innerHTML =
+            `<div class="alert alert-danger">Load failed: ${e.message}</div>`;
         }
       }
 
       function renderUsers(users) {
         const search = document.getElementById('search').value.toLowerCase();
-        let html = `<table class="table table-striped"><thead><tr><th>User</th><th>Email</th><th>Display</th><th>Groups</th><th>Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-striped">
+          <thead><tr>
+            <th>User</th><th>Email</th><th>Display</th><th>Groups</th><th>Actions</th>
+          </tr></thead><tbody>`;
+
         for (const u of Object.keys(users).sort()) {
           const data = users[u];
           const rowText = (u + (data.email||"") + (data.displayname||"")).toLowerCase();
           if (search && rowText.indexOf(search) === -1) continue;
+
           html += `<tr>
             <td class="small-mono">${u}</td>
             <td>${data.email || ""}</td>
             <td>${data.displayname || ""}</td>
             <td>${(data.groups || []).join(", ")}</td>
             <td>
-              <button class="btn btn-sm btn-danger" onclick="del('${u}')">Delete</button>
+              <button class="btn btn-sm btn-danger" onclick="delUser('${u}')">Delete</button>
               <button class="btn btn-sm btn-secondary" onclick="showChangePass('${u}')">Pwd</button>
               <button class="btn btn-sm btn-info" onclick="showEdit('${u}')">Edit</button>
             </td>
           </tr>`;
         }
+
         html += `</tbody></table>`;
         document.getElementById('users-area').innerHTML = html;
       }
 
-      async function del(u) {
+      /* =======================
+         Delete User
+      ======================= */
+      async function delUser(u) {
         if (!confirm('Delete ' + u + '?')) return;
         try {
           await api(`/admin/api/users/${u}`, { method: 'DELETE' });
@@ -104,80 +270,145 @@
         }
       }
 
+      /* =======================
+         Change Password Modal
+      ======================= */
+      let activeUserForPass = null;
+      const passModal = new bootstrap.Modal(document.getElementById('modalPass'));
+
       function showChangePass(u) {
-        const pass = prompt('New password for ' + u);
-        if (!pass) return;
-        fetch(`/admin/api/users/${u}/password`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ password: pass })
-        }).then(r=>r.ok?loadUsers():r.text().then(t=>{throw new Error(t)})).catch(e=>alert('Error: '+e.message));
+        activeUserForPass = u;
+        document.getElementById('pass1').value = "";
+        document.getElementById('pass2').value = "";
+        document.getElementById('passError').style.display = "none";
+        passModal.show();
       }
+
+      document.getElementById('savePassBtn').onclick = async () => {
+        const p1 = document.getElementById('pass1').value.trim();
+        const p2 = document.getElementById('pass2').value.trim();
+
+        if (p1 !== p2) {
+          document.getElementById('passError').style.display = "block";
+          return;
+        }
+
+        try {
+          await fetch(`/admin/api/users/${activeUserForPass}/password`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ password: p1 })
+          });
+
+          passModal.hide();
+          loadUsers();
+        } catch (e) {
+          alert('Password change failed: ' + e.message);
+        }
+      };
+
+      /* =======================
+         Edit User Modal
+      ======================= */
+      let activeUserForEdit = null;
+      const editModal = new bootstrap.Modal(document.getElementById('modalEdit'));
 
       function showEdit(u) {
-        const email = prompt('Email', '');
-        const display = prompt('Display name', '');
-        const groups = prompt('Groups (comma)', '');
-        const body = {};
-        if (email !== null) body.email = email;
-        if (display !== null) body.displayname = display;
-        if (groups !== null) body.groups = groups.split(',').map(s=>s.trim()).filter(Boolean);
-        fetch(`/admin/api/users/${u}`, {
-          method: 'PUT',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(body)
-        }).then(r=>r.ok?loadUsers():r.text().then(t=>{throw new Error(t)})).catch(e=>alert('Error: '+e.message));
+        activeUserForEdit = u;
+
+        api('/admin/api/users').then(users => {
+          const user = users[u] || {};
+          document.getElementById('editEmail').value = user.email || "";
+          document.getElementById('editDisplay').value = user.displayname || "";
+          setGroupsFor('edit', user.groups || []);
+          editModal.show();
+        });
       }
 
+      document.getElementById('saveEditBtn').onclick = async () => {
+        const email = document.getElementById('editEmail').value.trim();
+        const display = document.getElementById('editDisplay').value.trim();
+        const groups = getGroupsFor('edit');
+
+        const body = { email, displayname: display, groups };
+
+        try {
+          await fetch(`/admin/api/users/${activeUserForEdit}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+
+          editModal.hide();
+          loadUsers();
+        } catch (e) {
+          alert('Edit failed: ' + e.message);
+        }
+      };
+
+      /* =======================
+         Create User
+      ======================= */
       document.getElementById('createForm').addEventListener('submit', async e => {
         e.preventDefault();
         try {
           const username = document.getElementById('createUser').value.trim();
           const email = document.getElementById('createEmail').value.trim();
           const display = document.getElementById('createDisplay').value.trim();
-          const groups = document.getElementById('createGroups').value.split(',').map(s=>s.trim()).filter(Boolean);
+          const groups = getGroupsFor('create');
           const password = document.getElementById('createPass').value;
+
           await fetch('/admin/api/users', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ username, email, displayname: display, groups, password })
           });
+
           document.getElementById('createForm').reset();
+          setGroupsFor('create', []);
           loadUsers();
         } catch (err) {
           alert('Create failed: ' + err.message);
         }
       });
 
+      /* =======================
+         Invite User
+      ======================= */
       document.getElementById('inviteForm').addEventListener('submit', async e => {
         e.preventDefault();
         try {
           const email = document.getElementById('inviteEmail').value.trim();
-          const groups = document.getElementById('inviteGroups').value.split(',').map(s=>s.trim()).filter(Boolean);
+          const groups = getGroupsFor('invite');
           const expires = parseInt(document.getElementById('inviteExpires').value, 10) || 60;
-          console.log('Creating invite for', email, groups, expires);
+
           const r = await fetch('/admin/api/invite', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ email, groups, expiresMinutes: expires })
           });
-          console.log('Invite response', r);
+
           const json = await r.json();
-          if (json.link) {
-            alert('Invite created. Link:\n' + json.link);
-          } else {
-            alert('Invite created');
-          }
-          inviteForm.reset();
+          alert(json && json.link ? 'Invite created:\n' + json.link : 'Invite created');
+
+          document.getElementById('inviteForm').reset();
+          setGroupsFor('invite', []);
         } catch (err) {
           alert('Invite failed: ' + err.message);
         }
       });
 
+      /* =======================
+         Init
+      ======================= */
       document.getElementById('reload').onclick = loadUsers;
       document.getElementById('search').oninput = loadUsers;
 
-      loadUsers();
+      (async () => {
+        await loadGroups();
+        ['create','edit','invite'].forEach(renderGroupMenu);
+        loadUsers();
+      })();
     </script>
   </body>
 </html>

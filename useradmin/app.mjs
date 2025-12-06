@@ -29,6 +29,8 @@ import { execSync } from "child_process";
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static("public"));
+app.use("/api", express.static("api"));
+
 
 // Configurable paths (mount /config for production)
 const CONFIG_DIR = process.env.CONFIG_DIR || "/config";
@@ -174,6 +176,19 @@ if (SMTP_CONFIGURED) {
 } else {
   logger.info("SMTP not configured - invites will be returned but not emailed");
 }
+
+// ---------- API: read groups.json ----------
+app.get("/api/groups.json", (req, res) => {
+  try {
+    const raw = fs.readFileSync("/config/groups.json", "utf8");
+    res.setHeader("Content-Type", "application/json");
+    res.send(raw);
+  } catch (e) {
+    console.error("groups.json read error", e);
+    res.status(500).json({ error: "groups.json missing or unreadable" });
+  }
+});
+
 
 // ---------- API: read users (passwords removed for safety) ----------
 app.get("/api/users", checkAdmin, (req, res) => {
