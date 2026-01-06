@@ -28,44 +28,45 @@ services:
       # Service (Authelia runs on port 9091 internally)
       - "traefik.http.services.authelia.loadbalancer.server.port=9091"
 
-  useradmin:
-    container_name: useradmin
-    build: ./useradmin
-    networks:
-      - traefik_network
-    volumes:
-      - ./useradmin:/app
-      - ./config:/config
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - BASE_URL=${BASE_URL}
-      - CONFIG_DIR=/config
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_SECURE=${SMTP_SECURE}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM=${SMTP_FROM}
-    labels:
-      - "traefik.enable=true"
+  # switched off because of lldap user handling
+  # useradmin:
+  #   container_name: useradmin
+  #   build: ./useradmin
+  #   networks:
+  #     - traefik_network
+  #   volumes:
+  #     - ./useradmin:/app
+  #     - ./config:/config
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - BASE_URL=${BASE_URL}
+  #     - CONFIG_DIR=/config
+  #     - SMTP_HOST=${SMTP_HOST}
+  #     - SMTP_PORT=${SMTP_PORT}
+  #     - SMTP_SECURE=${SMTP_SECURE}
+  #     - SMTP_USER=${SMTP_USER}
+  #     - SMTP_PASS=${SMTP_PASS}
+  #     - SMTP_FROM=${SMTP_FROM}
+  #   labels:
+  #     - "traefik.enable=true"
 
-      # --- ROUTER ---
-      - "traefik.http.routers.useradmin.rule=Host(`authelia.home.smallfamilybusiness.net`) && PathPrefix(`/admin`)"
-      - "traefik.http.routers.useradmin.entrypoints=https"
-      - "traefik.http.routers.useradmin.tls=true"
-      - "traefik.http.routers.useradmin.tls.certresolver=letsencrypt"
+  #     # --- ROUTER ---
+  #     - "traefik.http.routers.useradmin.rule=Host(`authelia.home.smallfamilybusiness.net`) && PathPrefix(`/admin`)"
+  #     - "traefik.http.routers.useradmin.entrypoints=https"
+  #     - "traefik.http.routers.useradmin.tls=true"
+  #     - "traefik.http.routers.useradmin.tls.certresolver=letsencrypt"
 
-      # --- MIDDLEWARES ---
-      # ZUERST Authelia!
-      - "traefik.http.routers.useradmin.middlewares=authelia@file,useradmin-strip"
+  #     # --- MIDDLEWARES ---
+  #     # ZUERST Authelia!
+  #     - "traefik.http.routers.useradmin.middlewares=authelia@file,useradmin-strip"
 
-      # --- Prefix Strip ---
-      - "traefik.http.middlewares.useradmin-strip.stripprefix.prefixes=/admin"
+  #     # --- Prefix Strip ---
+  #     - "traefik.http.middlewares.useradmin-strip.stripprefix.prefixes=/admin"
 
-      # --- SERVICE ---
-      - "traefik.http.services.useradmin.loadbalancer.server.port=3000"
+  #     # --- SERVICE ---
+  #     - "traefik.http.services.useradmin.loadbalancer.server.port=3000"
 
 networks:
   traefik_network:
