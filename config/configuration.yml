@@ -42,6 +42,11 @@ access_control:
 
   rules:
 
+    - domain: nasautomation.home.smallfamilybusiness.net
+      resources:
+        - "^/api/.*"
+      policy: bypass
+
     # Notwendig für das invite System des useradmin addons
     - domain: authelia.home.smallfamilybusiness.net
       resources:
